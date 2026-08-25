@@ -225,7 +225,7 @@ class TestFullExport:
         workbook = _load_workbook(response)
         sheet = workbook.active
         header = [cell.value for cell in sheet[1]]
-        assert header == ["Date", "Description", "Category", "Type", "Amount"]
+        assert header == ["Date", "Description", "Category", "Type", "Account", "Currency", "Amount"]
 
 
 # ---------------------------------------------------------------------------
@@ -292,7 +292,7 @@ class TestCellTypes:
         sheet = workbook.active
         data_row = list(sheet.iter_rows(min_row=2, max_row=2, values_only=True))[0]
 
-        date_value, _desc, _cat, _type, amount_value = data_row
+        date_value, _desc, _cat, _type, _account, _currency, amount_value = data_row
         assert isinstance(date_value, date)
         assert isinstance(amount_value, (int, float))
         assert amount_value == 123.45

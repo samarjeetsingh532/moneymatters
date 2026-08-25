@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+
+{% block title %}Add Account — Spendly{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/add_expense.css') }}">
+{% endblock %}
+
+{% block content %}
+<section class="auth-section">
+    <div class="auth-container">
+
+        <div class="auth-header">
+            <h1 class="auth-title">Add Account</h1>
+            <p class="auth-subtitle">Track a new bank account, cash, card or wallet</p>
+        </div>
+
+        <div class="auth-card">
+            <form method="POST" action="{{ url_for('add_account') }}">
+
+                <div class="form-group">
+                    <label for="name">Account Name</label>
+                    <input type="text" id="name" name="name" class="form-input"
+                           placeholder="e.g. HDFC Bank"
+                           value="{{ form.get('name', '') }}"
+                           required autofocus>
+                </div>
+
+                <div class="form-group">
+                    <label for="account_type">Account Type</label>
+                    <select id="account_type" name="account_type" class="form-input form-select" required>
+                        <option value="" disabled {% if not form.get('account_type') %}selected{% endif %}>Select a type</option>
+                        {% for t in account_types %}
+                        <option value="{{ t }}" {% if form.get('account_type') == t %}selected{% endif %}>{{ t }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="currency">Currency</label>
+                    <select id="currency" name="currency" class="form-input form-select" required>
+                        <option value="" disabled {% if not form.get('currency') %}selected{% endif %}>Select a currency</option>
+                        {% for c in currencies %}
+                        <option value="{{ c }}" {% if form.get('currency') == c %}selected{% endif %}>{{ c }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="opening_balance">Opening Balance</label>
+                    <input type="number" id="opening_balance" name="opening_balance"
+                           class="form-input"
+                           placeholder="0.00" step="0.01"
+                           value="{{ form.get('opening_balance', '0') }}">
+                </div>
+
+                <div class="form-group">
+                    <label for="description">Description <span class="field-optional">(optional)</span></label>
+                    <textarea id="description" name="description"
+                              class="form-input form-textarea"
+                              placeholder="What is this account for?"
+                              maxlength="200">{{ form.get('description', '') }}</textarea>
+                </div>
+
+                <button type="submit" class="btn-submit">Save Account</button>
+
+            </form>
+        </div>
+
+        <p class="auth-switch">
+            <a href="{{ url_for('accounts') }}">← Back to accounts</a>
+        </p>
+
+    </div>
+</section>
+{% endblock %}

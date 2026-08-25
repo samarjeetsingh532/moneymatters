@@ -74,7 +74,21 @@
 .profile-header-actions {
     margin-left: auto;
     display: flex;
+    align-items: center;
     gap: 0.75rem;
+}
+
+.base-currency-form {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.base-currency-label {
+    font-size: 0.8rem;
+    font-weight: 500;
+    color: var(--ink-soft);
+    white-space: nowrap;
 }
 
 .profile-add-btn {
@@ -451,6 +465,64 @@
     padding: 2rem;
     color: var(--ink-faint);
     font-size: 0.875rem;
+}
+
+.tx-account {
+    color: var(--ink-muted);
+    font-size: 0.85rem;
+    white-space: nowrap;
+}
+
+/* ------------------------------------------------------------------ */
+/* Rates note                                                           */
+/* ------------------------------------------------------------------ */
+
+.rates-note {
+    font-size: 0.78rem;
+    color: var(--ink-faint);
+    margin-top: -0.5rem;
+}
+
+/* ------------------------------------------------------------------ */
+/* By-account breakdown                                                 */
+/* ------------------------------------------------------------------ */
+
+.account-breakdown-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+}
+
+.account-breakdown-card {
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 1rem 1.25rem;
+    background: var(--paper);
+}
+
+.account-breakdown-card--inactive {
+    opacity: 0.55;
+}
+
+.account-breakdown-name {
+    font-weight: 600;
+    color: var(--ink);
+    margin-bottom: 0.3rem;
+}
+
+.account-breakdown-balance {
+    font-family: var(--font-display);
+    font-size: 1.3rem;
+    color: var(--ink);
+    margin-bottom: 0.6rem;
+}
+
+.account-breakdown-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.82rem;
+    color: var(--ink-muted);
+    padding: 0.15rem 0;
 }
 
 /* ------------------------------------------------------------------ */

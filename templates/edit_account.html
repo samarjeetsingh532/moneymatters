@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+
+{% block title %}Edit Account — Spendly{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/add_expense.css') }}">
+{% endblock %}
+
+{% block content %}
+<section class="auth-section">
+    <div class="auth-container">
+
+        <div class="auth-header">
+            <h1 class="auth-title">Edit Account</h1>
+            <p class="auth-subtitle">Update your account details</p>
+        </div>
+
+        <div class="auth-card">
+            <form method="POST" action="{{ url_for('edit_account', id=account.id) }}">
+
+                <div class="form-group">
+                    <label for="name">Account Name</label>
+                    <input type="text" id="name" name="name" class="form-input"
+                           value="{{ form.get('name', account.name) }}"
+                           required autofocus>
+                </div>
+
+                <div class="form-group">
+                    <label for="account_type">Account Type</label>
+                    {% set selected_type = form.get('account_type', account.account_type) %}
+                    <select id="account_type" name="account_type" class="form-input form-select" required>
+                        {% for t in account_types %}
+                        <option value="{{ t }}" {% if selected_type == t %}selected{% endif %}>{{ t }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="currency">Currency</label>
+                    {% set selected_currency = form.get('currency', account.currency) %}
+                    <select id="currency" name="currency" class="form-input form-select" required>
+                        {% for c in currencies %}
+                        <option value="{{ c }}" {% if selected_currency == c %}selected{% endif %}>{{ c }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="opening_balance">Opening Balance</label>
+                    <input type="number" id="opening_balance" name="opening_balance"
+                           class="form-input" step="0.01"
+                           value="{{ form.get('opening_balance', account.opening_balance) }}">
+                </div>
+
+                <div class="form-group">
+                    <label for="description">Description <span class="field-optional">(optional)</span></label>
+                    <textarea id="description" name="description"
+                              class="form-input form-textarea"
+                              maxlength="200">{{ form.get('description', account.description) }}</textarea>
+                </div>
+
+                <div class="form-group form-group--checkbox">
+                    <label for="is_active" class="form-checkbox-label">
+                        <input type="checkbox" id="is_active" name="is_active"
+                               {% if form.get('is_active', '1' if account.is_active else '') %}checked{% endif %}>
+                        Active
+                    </label>
+                </div>
+
+                <button type="submit" class="btn-submit">Save Changes</button>
+
+            </form>
+        </div>
+
+        <p class="auth-switch">
+            <a href="{{ url_for('accounts') }}">← Back to accounts</a>
+        </p>
+
+    </div>
+</section>
+{% endblock %}

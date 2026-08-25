@@ -1,0 +1,62 @@
+{# templates/accounts.html #}
+{% extends "base.html" %}
+
+{% block title %}My Accounts — Spendly{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/profile.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/accounts.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="profile-page">
+    <div class="profile-inner">
+
+        <div class="profile-header-card">
+            <div class="profile-info">
+                <h1 class="profile-name">My Accounts</h1>
+                <p class="profile-email">Manage your bank accounts, cash, cards and wallets</p>
+            </div>
+            <div class="profile-header-actions">
+                <a href="{{ url_for('add_account') }}" class="btn-primary profile-add-btn">+ Add Account</a>
+            </div>
+        </div>
+
+        <div class="account-grid">
+            {% for account in accounts %}
+            <div class="account-card {{ '' if account.is_active else 'account-card--inactive' }}">
+                <div class="account-card-header">
+                    <span class="account-card-name">{{ account.name }}</span>
+                    {% if not account.is_active %}
+                    <span class="account-status-badge">Inactive</span>
+                    {% endif %}
+                </div>
+                <div class="account-card-balance">
+                    {{ currency_symbol(account.currency) }}{{ "{:,.2f}".format(account.current_balance) }}
+                </div>
+                <div class="account-card-meta">
+                    <span class="account-type-badge">{{ account.account_type }}</span>
+                    <span class="account-currency-badge">{{ account.currency }}</span>
+                </div>
+                {% if account.description %}
+                <p class="account-card-description">{{ account.description }}</p>
+                {% endif %}
+                <div class="account-card-actions">
+                    <a href="{{ url_for('edit_account', id=account.id) }}" class="tx-edit-link">Edit</a>
+                    <form method="POST" action="{{ url_for('delete_account', id=account.id) }}"
+                          style="display:inline"
+                          onsubmit="return confirm('Delete this account? Accounts with existing transactions are deactivated instead of deleted.')">
+                        <button type="submit" class="btn-delete">Delete</button>
+                    </form>
+                </div>
+            </div>
+            {% endfor %}
+
+            {% if not accounts %}
+            <p class="tx-empty">You don't have any accounts yet.</p>
+            {% endif %}
+        </div>
+
+    </div>
+</div>
+{% endblock %}

@@ -48,7 +48,25 @@ function downloadExportFile(url, button) {
         });
 }
 
+function syncCurrencyToAccount(accountSelect, currencySelect) {
+    if (!accountSelect || !currencySelect) return;
+    var sync = function () {
+        var selected = accountSelect.options[accountSelect.selectedIndex];
+        var currency = selected ? selected.dataset.currency : null;
+        if (currency) {
+            currencySelect.value = currency;
+        }
+    };
+    accountSelect.addEventListener("change", sync);
+    sync();
+}
+
 document.addEventListener("DOMContentLoaded", function () {
+    syncCurrencyToAccount(
+        document.querySelector(".account-select"),
+        document.querySelector(".currency-select")
+    );
+
     var monthlyBtn = document.getElementById("download-monthly-btn");
     if (monthlyBtn) {
         monthlyBtn.addEventListener("click", function () {

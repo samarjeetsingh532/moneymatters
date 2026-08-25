@@ -20,3 +20,20 @@
     color: var(--ink-faint);
     font-weight: 400;
 }
+
+.form-group--checkbox {
+    display: flex;
+    align-items: center;
+}
+
+.form-checkbox-label {
+    display: flex !important;
+    align-items: center;
+    gap: 0.5rem;
+    cursor: pointer;
+    margin-bottom: 0 !important;
+}
+
+.form-checkbox-label input[type="checkbox"] {
+    width: auto;
+}

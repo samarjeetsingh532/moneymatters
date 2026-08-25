@@ -21,19 +21,29 @@ from werkzeug.security import check_password_hash
 
 from database.db import create_user, get_db, get_user_by_email, init_db, seed_db
 from database.queries import (
+    CURRENCIES,
+    currency_symbol,
+    delete_account_by_id,
     delete_expense_by_id,
     delete_income_by_id,
+    get_account_breakdown,
+    get_account_by_id,
+    get_accounts_by_user,
     get_all_transactions,
     get_category_breakdown,
+    get_default_account,
     get_expense_by_id,
     get_income_by_id,
     get_recent_transactions,
     get_summary_stats,
     get_user_by_id,
+    insert_account,
     insert_expense,
     insert_income,
+    update_account,
     update_expense,
     update_income,
+    update_user_base_currency,
 )
 
 app = Flask(__name__)
@@ -58,6 +68,14 @@ INCOME_SOURCES = [
     "Other",
 ]
 
+ACCOUNT_TYPES = [
+    "Bank Account",
+    "Cash",
+    "Credit Card",
+    "Wallet",
+    "Other",
+]
+
 with app.app_context():
     init_db()
     seed_db()
@@ -79,12 +97,41 @@ def _months_ago(today, n):
     return date(y, m, 1).isoformat()
 
 
+def _resolve_selected_account(user_id, raw_account_id):
+    """Validate the submitted account belongs to the user and is active;
+    fall back to their default account otherwise (e.g. old forms/tests that
+    don't submit an account at all)."""
+    account_id = None
+    try:
+        candidate_id = int(raw_account_id)
+    except (TypeError, ValueError):
+        candidate_id = None
+
+    if candidate_id is not None:
+        account = get_account_by_id(candidate_id, user_id)
+        if account is not None and account["is_active"]:
+            account_id = candidate_id
+
+    if account_id is None:
+        default_account = get_default_account(user_id)
+        account_id = default_account["id"] if default_account else None
+
+    return account_id
+
+
+def _parse_int(val):
+    try:
+        return int(val)
+    except (TypeError, ValueError):
+        return None
+
+
 def _build_transactions_workbook(transactions):
     workbook = Workbook()
     sheet = workbook.active
     sheet.title = "Transactions"
 
-    sheet.append(["Date", "Description", "Category", "Type", "Amount"])
+    sheet.append(["Date", "Description", "Category", "Type", "Account", "Currency", "Amount"])
     for cell in sheet[1]:
         cell.font = Font(bold=True)
 
@@ -95,16 +142,18 @@ def _build_transactions_workbook(transactions):
                 tx["description"],
                 tx["category"],
                 "Income" if tx["type"] == "income" else "Expense",
+                tx["account_name"],
+                tx["currency"],
                 tx["amount"],
             ]
         )
 
     for row in sheet.iter_rows(min_row=2, min_col=1, max_col=1):
         row[0].number_format = "yyyy-mm-dd"
-    for row in sheet.iter_rows(min_row=2, min_col=5, max_col=5):
+    for row in sheet.iter_rows(min_row=2, min_col=7, max_col=7):
         row[0].number_format = "#,##0.00"
 
-    widths = {"A": 14, "B": 34, "C": 16, "D": 10, "E": 14}
+    widths = {"A": 14, "B": 34, "C": 16, "D": 10, "E": 18, "F": 10, "G": 14}
     for column, width in widths.items():
         sheet.column_dimensions[column].width = width
 
@@ -212,9 +261,17 @@ def profile():
 
     uid = session["user_id"]
     today = date.today()
+    user = get_user_by_id(uid)
 
     date_from = _parse_date(request.args.get("date_from"))
     date_to = _parse_date(request.args.get("date_to"))
+    account_id = _parse_int(request.args.get("account"))
+    currency_filter = request.args.get("currency") or None
+    if currency_filter not in CURRENCIES:
+        currency_filter = None
+    tx_type = request.args.get("type") or None
+    if tx_type not in ("income", "expense"):
+        tx_type = None
 
     if date_from and date_to and date_from > date_to:
         flash("Start date must be before end date.", "error")
@@ -232,20 +289,66 @@ def profile():
         "last_6": {"date_from": _months_ago(today, 6), "date_to": today_str},
     }
 
+    base_currency = user["base_currency"] if user else "INR"
+
     return render_template(
         "profile.html",
-        user=get_user_by_id(uid),
-        stats=get_summary_stats(uid, date_from, date_to),
-        transactions=get_recent_transactions(uid, date_from=date_from, date_to=date_to),
-        categories=get_category_breakdown(uid, date_from, date_to),
+        user=user,
+        stats=get_summary_stats(
+            uid,
+            date_from,
+            date_to,
+            base_currency=base_currency,
+            account_id=account_id,
+            tx_type=tx_type,
+            currency=currency_filter,
+        ),
+        transactions=get_recent_transactions(
+            uid,
+            date_from=date_from,
+            date_to=date_to,
+            account_id=account_id,
+            tx_type=tx_type,
+            currency=currency_filter,
+        ),
+        categories=get_category_breakdown(
+            uid,
+            date_from,
+            date_to,
+            base_currency=base_currency,
+            account_id=account_id,
+            currency=currency_filter,
+        ),
+        accounts=get_accounts_by_user(uid),
+        account_breakdown=get_account_breakdown(uid, date_from, date_to),
+        currency_symbol=currency_symbol,
+        currencies=CURRENCIES,
         date_from=date_from,
         date_to=date_to,
+        account_id=account_id,
+        currency_filter=currency_filter,
+        tx_type=tx_type,
         presets=presets,
         month_names=list(calendar.month_name)[1:],
         export_years=list(range(today.year - 5, today.year + 1)),
         current_month=today.month,
         current_year=today.year,
     )
+
+
+@app.route("/base-currency", methods=["POST"])
+def update_base_currency():
+    if not session.get("user_id"):
+        return redirect(url_for("login"))
+
+    currency = request.form.get("base_currency", "").strip()
+    if currency in CURRENCIES:
+        update_user_base_currency(session["user_id"], currency)
+        flash("Base currency updated.", "success")
+    else:
+        flash("Please select a valid currency.", "error")
+
+    return redirect(url_for("profile"))
 
 
 @app.route("/analytics")
@@ -261,12 +364,16 @@ def add_expense():
         return redirect(url_for("login"))
 
     today = date.today().isoformat()
+    accounts = get_accounts_by_user(session["user_id"], active_only=True)
 
     if request.method == "POST":
         amount_raw = request.form.get("amount", "").strip()
         category = request.form.get("category", "").strip()
         expense_date = request.form.get("date", "").strip()
         description = request.form.get("description", "").strip()
+        account_id = _resolve_selected_account(
+            session["user_id"], request.form.get("account")
+        )
 
         try:
             amount = float(amount_raw)
@@ -277,6 +384,7 @@ def add_expense():
             return render_template(
                 "add_expense.html",
                 categories=CATEGORIES,
+                accounts=accounts, currencies=CURRENCIES,
                 form=request.form,
                 today=today,
             )
@@ -286,6 +394,7 @@ def add_expense():
             return render_template(
                 "add_expense.html",
                 categories=CATEGORIES,
+                accounts=accounts, currencies=CURRENCIES,
                 form=request.form,
                 today=today,
             )
@@ -295,16 +404,20 @@ def add_expense():
             return render_template(
                 "add_expense.html",
                 categories=CATEGORIES,
+                accounts=accounts, currencies=CURRENCIES,
                 form=request.form,
                 today=today,
             )
 
-        insert_expense(session["user_id"], amount, category, expense_date, description)
+        insert_expense(
+            session["user_id"], amount, category, expense_date, description,
+            account_id=account_id,
+        )
         flash("Expense added.", "success")
         return redirect(url_for("profile"))
 
     return render_template(
-        "add_expense.html", categories=CATEGORIES, form={}, today=today
+        "add_expense.html", categories=CATEGORIES, accounts=accounts, currencies=CURRENCIES, form={}, today=today
     )
 
 
@@ -317,11 +430,14 @@ def edit_expense(id):
     if expense is None:
         abort(404)
 
+    accounts = get_accounts_by_user(session["user_id"], active_only=True)
+
     if request.method == "GET":
         return render_template(
             "edit_expense.html",
             expense=expense,
             categories=CATEGORIES,
+            accounts=accounts, currencies=CURRENCIES,
             form={},
         )
 
@@ -329,6 +445,7 @@ def edit_expense(id):
     category = request.form.get("category", "").strip()
     expense_date = request.form.get("date", "").strip()
     description = request.form.get("description", "").strip()
+    account_id = _resolve_selected_account(session["user_id"], request.form.get("account"))
 
     try:
         amount = float(amount_raw)
@@ -340,6 +457,7 @@ def edit_expense(id):
             "edit_expense.html",
             expense=expense,
             categories=CATEGORIES,
+            accounts=accounts, currencies=CURRENCIES,
             form=request.form,
         )
 
@@ -349,6 +467,7 @@ def edit_expense(id):
             "edit_expense.html",
             expense=expense,
             categories=CATEGORIES,
+            accounts=accounts, currencies=CURRENCIES,
             form=request.form,
         )
 
@@ -358,10 +477,14 @@ def edit_expense(id):
             "edit_expense.html",
             expense=expense,
             categories=CATEGORIES,
+            accounts=accounts, currencies=CURRENCIES,
             form=request.form,
         )
 
-    update_expense(id, session["user_id"], amount, category, expense_date, description)
+    update_expense(
+        id, session["user_id"], amount, category, expense_date, description,
+        account_id=account_id,
+    )
     flash("Expense updated.", "success")
     return redirect(url_for("profile"))
 
@@ -385,12 +508,16 @@ def add_income():
         return redirect(url_for("login"))
 
     today = date.today().isoformat()
+    accounts = get_accounts_by_user(session["user_id"], active_only=True)
 
     if request.method == "POST":
         amount_raw = request.form.get("amount", "").strip()
         source = request.form.get("source", "").strip()
         income_date = request.form.get("date", "").strip()
         description = request.form.get("description", "").strip()
+        account_id = _resolve_selected_account(
+            session["user_id"], request.form.get("account")
+        )
 
         try:
             amount = float(amount_raw)
@@ -401,6 +528,7 @@ def add_income():
             return render_template(
                 "add_income.html",
                 sources=INCOME_SOURCES,
+                accounts=accounts, currencies=CURRENCIES,
                 form=request.form,
                 today=today,
             )
@@ -410,6 +538,7 @@ def add_income():
             return render_template(
                 "add_income.html",
                 sources=INCOME_SOURCES,
+                accounts=accounts, currencies=CURRENCIES,
                 form=request.form,
                 today=today,
             )
@@ -419,16 +548,20 @@ def add_income():
             return render_template(
                 "add_income.html",
                 sources=INCOME_SOURCES,
+                accounts=accounts, currencies=CURRENCIES,
                 form=request.form,
                 today=today,
             )
 
-        insert_income(session["user_id"], amount, source, income_date, description)
+        insert_income(
+            session["user_id"], amount, source, income_date, description,
+            account_id=account_id,
+        )
         flash("Income added.", "success")
         return redirect(url_for("profile"))
 
     return render_template(
-        "add_income.html", sources=INCOME_SOURCES, form={}, today=today
+        "add_income.html", sources=INCOME_SOURCES, accounts=accounts, currencies=CURRENCIES, form={}, today=today
     )
 
 
@@ -441,11 +574,14 @@ def edit_income(id):
     if income is None:
         abort(404)
 
+    accounts = get_accounts_by_user(session["user_id"], active_only=True)
+
     if request.method == "GET":
         return render_template(
             "edit_income.html",
             income=income,
             sources=INCOME_SOURCES,
+            accounts=accounts, currencies=CURRENCIES,
             form={},
         )
 
@@ -453,6 +589,7 @@ def edit_income(id):
     source = request.form.get("source", "").strip()
     income_date = request.form.get("date", "").strip()
     description = request.form.get("description", "").strip()
+    account_id = _resolve_selected_account(session["user_id"], request.form.get("account"))
 
     try:
         amount = float(amount_raw)
@@ -464,6 +601,7 @@ def edit_income(id):
             "edit_income.html",
             income=income,
             sources=INCOME_SOURCES,
+            accounts=accounts, currencies=CURRENCIES,
             form=request.form,
         )
 
@@ -473,6 +611,7 @@ def edit_income(id):
             "edit_income.html",
             income=income,
             sources=INCOME_SOURCES,
+            accounts=accounts, currencies=CURRENCIES,
             form=request.form,
         )
 
@@ -482,10 +621,14 @@ def edit_income(id):
             "edit_income.html",
             income=income,
             sources=INCOME_SOURCES,
+            accounts=accounts, currencies=CURRENCIES,
             form=request.form,
         )
 
-    update_income(id, session["user_id"], amount, source, income_date, description)
+    update_income(
+        id, session["user_id"], amount, source, income_date, description,
+        account_id=account_id,
+    )
     flash("Income updated.", "success")
     return redirect(url_for("profile"))
 
@@ -501,6 +644,163 @@ def delete_income(id):
 
     delete_income_by_id(id, session["user_id"])
     return redirect(url_for("profile"))
+
+
+@app.route("/accounts")
+def accounts():
+    if not session.get("user_id"):
+        return redirect(url_for("login"))
+
+    return render_template(
+        "accounts.html",
+        accounts=get_accounts_by_user(session["user_id"]),
+        currency_symbol=currency_symbol,
+    )
+
+
+@app.route("/accounts/add", methods=["GET", "POST"])
+def add_account():
+    if not session.get("user_id"):
+        return redirect(url_for("login"))
+
+    if request.method == "POST":
+        name = request.form.get("name", "").strip()
+        account_type = request.form.get("account_type", "").strip()
+        currency = request.form.get("currency", "").strip()
+        opening_balance_raw = request.form.get("opening_balance", "").strip()
+        description = request.form.get("description", "").strip()
+
+        if not name:
+            flash("Please enter an account name.", "error")
+            return render_template(
+                "add_account.html", account_types=ACCOUNT_TYPES, currencies=CURRENCIES,
+                form=request.form,
+            )
+
+        if account_type not in ACCOUNT_TYPES:
+            flash("Please select a valid account type.", "error")
+            return render_template(
+                "add_account.html", account_types=ACCOUNT_TYPES, currencies=CURRENCIES,
+                form=request.form,
+            )
+
+        if currency not in CURRENCIES:
+            flash("Please select a valid currency.", "error")
+            return render_template(
+                "add_account.html", account_types=ACCOUNT_TYPES, currencies=CURRENCIES,
+                form=request.form,
+            )
+
+        try:
+            opening_balance = float(opening_balance_raw) if opening_balance_raw else 0.0
+        except ValueError:
+            flash("Opening balance must be a number.", "error")
+            return render_template(
+                "add_account.html", account_types=ACCOUNT_TYPES, currencies=CURRENCIES,
+                form=request.form,
+            )
+
+        insert_account(
+            session["user_id"], name, account_type, currency, opening_balance, description
+        )
+        flash("Account added.", "success")
+        return redirect(url_for("accounts"))
+
+    return render_template(
+        "add_account.html", account_types=ACCOUNT_TYPES, currencies=CURRENCIES, form={}
+    )
+
+
+@app.route("/accounts/<int:id>/edit", methods=["GET", "POST"])
+def edit_account(id):
+    if not session.get("user_id"):
+        return redirect(url_for("login"))
+
+    account = get_account_by_id(id, session["user_id"])
+    if account is None:
+        abort(404)
+
+    if request.method == "GET":
+        return render_template(
+            "edit_account.html", account=account, account_types=ACCOUNT_TYPES,
+            currencies=CURRENCIES, form={},
+        )
+
+    name = request.form.get("name", "").strip()
+    account_type = request.form.get("account_type", "").strip()
+    currency = request.form.get("currency", "").strip()
+    opening_balance_raw = request.form.get("opening_balance", "").strip()
+    description = request.form.get("description", "").strip()
+    is_active = bool(request.form.get("is_active"))
+
+    if not name:
+        flash("Please enter an account name.", "error")
+        return render_template(
+            "edit_account.html", account=account, account_types=ACCOUNT_TYPES,
+            currencies=CURRENCIES, form=request.form,
+        )
+
+    if account_type not in ACCOUNT_TYPES:
+        flash("Please select a valid account type.", "error")
+        return render_template(
+            "edit_account.html", account=account, account_types=ACCOUNT_TYPES,
+            currencies=CURRENCIES, form=request.form,
+        )
+
+    if currency not in CURRENCIES:
+        flash("Please select a valid currency.", "error")
+        return render_template(
+            "edit_account.html", account=account, account_types=ACCOUNT_TYPES,
+            currencies=CURRENCIES, form=request.form,
+        )
+
+    try:
+        opening_balance = float(opening_balance_raw) if opening_balance_raw else 0.0
+    except ValueError:
+        flash("Opening balance must be a number.", "error")
+        return render_template(
+            "edit_account.html", account=account, account_types=ACCOUNT_TYPES,
+            currencies=CURRENCIES, form=request.form,
+        )
+
+    if account["is_active"] and not is_active:
+        active_accounts = get_accounts_by_user(session["user_id"], active_only=True)
+        if len(active_accounts) <= 1:
+            flash("You must keep at least one active account.", "error")
+            return render_template(
+                "edit_account.html", account=account, account_types=ACCOUNT_TYPES,
+                currencies=CURRENCIES, form=request.form,
+            )
+
+    update_account(
+        id, session["user_id"], name, account_type, currency, opening_balance,
+        description, is_active,
+    )
+    flash("Account updated.", "success")
+    return redirect(url_for("accounts"))
+
+
+@app.route("/accounts/<int:id>/delete", methods=["POST"])
+def delete_account(id):
+    if not session.get("user_id"):
+        return redirect(url_for("login"))
+
+    account = get_account_by_id(id, session["user_id"])
+    if account is None:
+        abort(404)
+
+    if account["is_active"]:
+        active_accounts = get_accounts_by_user(session["user_id"], active_only=True)
+        if len(active_accounts) <= 1:
+            flash("You must keep at least one active account.", "error")
+            return redirect(url_for("accounts"))
+
+    result = delete_account_by_id(id, session["user_id"])
+    if result == "deactivated":
+        flash("Account has existing transactions, so it was deactivated instead of deleted.", "success")
+    else:
+        flash("Account deleted.", "success")
+    return redirect(url_for("accounts"))
 
 
 # Export routes respond with JSON errors instead of redirecting to /login,

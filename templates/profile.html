@@ -20,6 +20,14 @@
                 <p class="profile-since">Member since {{ user.member_since }}</p>
             </div>
             <div class="profile-header-actions">
+                <form method="POST" action="{{ url_for('update_base_currency') }}" class="base-currency-form">
+                    <label for="base_currency" class="base-currency-label">Base Currency</label>
+                    <select id="base_currency" name="base_currency" class="form-input export-select" onchange="this.form.submit()">
+                        {% for c in currencies %}
+                        <option value="{{ c }}" {% if c == user.base_currency %}selected{% endif %}>{{ c }}</option>
+                        {% endfor %}
+                    </select>
+                </form>
                 <a href="{{ url_for('add_income') }}" class="btn-ghost profile-add-btn">+ Add Income</a>
                 <a href="{{ url_for('add_expense') }}" class="btn-primary profile-add-btn">+ Add Expense</a>
             </div>
@@ -28,19 +36,19 @@
         <!-- Filter bar -->
         <div class="filter-bar">
             <div class="filter-presets">
-                <a href="{{ url_for('profile') }}"
+                <a href="{{ url_for('profile', account=account_id, currency=currency_filter, type=tx_type) }}"
                    class="filter-preset-btn{% if not date_from and not date_to %} filter-preset-btn--active{% endif %}">
                     All Time
                 </a>
-                <a href="{{ url_for('profile', date_from=presets.this_month.date_from, date_to=presets.this_month.date_to) }}"
+                <a href="{{ url_for('profile', date_from=presets.this_month.date_from, date_to=presets.this_month.date_to, account=account_id, currency=currency_filter, type=tx_type) }}"
                    class="filter-preset-btn{% if date_from == presets.this_month.date_from and date_to == presets.this_month.date_to %} filter-preset-btn--active{% endif %}">
                     This Month
                 </a>
-                <a href="{{ url_for('profile', date_from=presets.last_3.date_from, date_to=presets.last_3.date_to) }}"
+                <a href="{{ url_for('profile', date_from=presets.last_3.date_from, date_to=presets.last_3.date_to, account=account_id, currency=currency_filter, type=tx_type) }}"
                    class="filter-preset-btn{% if date_from == presets.last_3.date_from and date_to == presets.last_3.date_to %} filter-preset-btn--active{% endif %}">
                     Last 3 Months
                 </a>
-                <a href="{{ url_for('profile', date_from=presets.last_6.date_from, date_to=presets.last_6.date_to) }}"
+                <a href="{{ url_for('profile', date_from=presets.last_6.date_from, date_to=presets.last_6.date_to, account=account_id, currency=currency_filter, type=tx_type) }}"
                    class="filter-preset-btn{% if date_from == presets.last_6.date_from and date_to == presets.last_6.date_to %} filter-preset-btn--active{% endif %}">
                     Last 6 Months
                 </a>
@@ -52,6 +60,23 @@
                 <span class="filter-to-label">to</span>
                 <input type="date" name="date_to" class="filter-date-input"
                        value="{{ date_to or '' }}">
+                <select name="account" class="filter-date-input">
+                    <option value="">All Accounts</option>
+                    {% for acc in accounts %}
+                    <option value="{{ acc.id }}" {% if account_id == acc.id %}selected{% endif %}>{{ acc.name }}</option>
+                    {% endfor %}
+                </select>
+                <select name="currency" class="filter-date-input">
+                    <option value="">All Currencies</option>
+                    {% for c in currencies %}
+                    <option value="{{ c }}" {% if currency_filter == c %}selected{% endif %}>{{ c }}</option>
+                    {% endfor %}
+                </select>
+                <select name="type" class="filter-date-input">
+                    <option value="">Income &amp; Expense</option>
+                    <option value="income" {% if tx_type == 'income' %}selected{% endif %}>Income only</option>
+                    <option value="expense" {% if tx_type == 'expense' %}selected{% endif %}>Expense only</option>
+                </select>
                 <button type="submit" class="filter-apply-btn">Apply</button>
             </form>
         </div>
@@ -59,16 +84,16 @@
         <!-- Summary stats row -->
         <div class="profile-stats">
             <div class="stat-card">
-                <span class="stat-label">Balance</span>
-                <span class="stat-value {{ 'stat-value--negative' if stats.balance_raw < 0 else 'stat-value--positive' }}">₹{{ stats.balance }}</span>
+                <span class="stat-label">Balance ({{ stats.base_currency }})</span>
+                <span class="stat-value {{ 'stat-value--negative' if stats.balance_raw < 0 else 'stat-value--positive' }}">{{ currency_symbol(stats.base_currency) }}{{ stats.balance }}</span>
             </div>
             <div class="stat-card">
                 <span class="stat-label">Total Income</span>
-                <span class="stat-value">₹{{ stats.total_income }}</span>
+                <span class="stat-value">{{ currency_symbol(stats.base_currency) }}{{ stats.total_income }}</span>
             </div>
             <div class="stat-card">
                 <span class="stat-label">Total Spent</span>
-                <span class="stat-value">₹{{ stats.total }}</span>
+                <span class="stat-value">{{ currency_symbol(stats.base_currency) }}{{ stats.total }}</span>
             </div>
             <div class="stat-card">
                 <span class="stat-label">Expenses</span>
@@ -77,6 +102,42 @@
             <div class="stat-card">
                 <span class="stat-label">Top Category</span>
                 <span class="stat-value">{{ stats.top_category }}</span>
+            </div>
+        </div>
+
+        {% if stats.rates_used %}
+        <p class="rates-note">
+            Converted to {{ stats.base_currency }} using fixed reference rates:
+            {% for cur, rate in stats.rates_used.items() %}
+            1 {{ cur }} = {{ currency_symbol(stats.base_currency) }}{{ "%.2f"|format(rate) }}{% if not loop.last %},{% endif %}
+            {% endfor %}
+        </p>
+        {% endif %}
+
+        <!-- By-account breakdown -->
+        <div class="profile-section">
+            <div class="section-title-row">
+                <h2 class="section-title">By Account</h2>
+                <a href="{{ url_for('accounts') }}" class="tx-edit-link">Manage accounts →</a>
+            </div>
+            <div class="account-breakdown-grid">
+                {% for acc in account_breakdown %}
+                <div class="account-breakdown-card {{ '' if acc.is_active else 'account-breakdown-card--inactive' }}">
+                    <div class="account-breakdown-name">{{ acc.name }}</div>
+                    <div class="account-breakdown-balance">{{ currency_symbol(acc.currency) }}{{ "{:,.2f}".format(acc.current_balance) }}</div>
+                    <div class="account-breakdown-row">
+                        <span>Income</span>
+                        <span class="tx-amount--income">+{{ currency_symbol(acc.currency) }}{{ "{:,.2f}".format(acc.income) }}</span>
+                    </div>
+                    <div class="account-breakdown-row">
+                        <span>Expenses</span>
+                        <span class="tx-amount--expense">-{{ currency_symbol(acc.currency) }}{{ "{:,.2f}".format(acc.expenses) }}</span>
+                    </div>
+                </div>
+                {% endfor %}
+                {% if not account_breakdown %}
+                <p class="tx-empty">No accounts yet.</p>
+                {% endif %}
             </div>
         </div>
 
@@ -95,6 +156,7 @@
                                 <th>Date</th>
                                 <th>Description</th>
                                 <th>Category</th>
+                                <th>Account</th>
                                 <th class="tx-amount-col">Amount</th>
                                 <th>Actions</th>
                             </tr>
@@ -109,8 +171,9 @@
                                         {{ tx.category }}
                                     </span>
                                 </td>
+                                <td class="tx-account">{{ tx.account_name }}</td>
                                 <td class="tx-amount tx-amount--{{ tx.type }}">
-                                    {{ '+' if tx.type == 'income' else '-' }}₹{{ tx.amount }}
+                                    {{ '+' if tx.type == 'income' else '-' }}{{ currency_symbol(tx.currency) }}{{ tx.amount }}
                                 </td>
                                 <td class="tx-actions">
                                     {% if tx.type == 'income' %}
@@ -133,7 +196,7 @@
                             {% endfor %}
                             {% if not transactions %}
                             <tr>
-                                <td colspan="5" class="tx-empty">No expenses found for this period.</td>
+                                <td colspan="6" class="tx-empty">No expenses found for this period.</td>
                             </tr>
                             {% endif %}
                         </tbody>
@@ -143,13 +206,13 @@
 
             <!-- Category breakdown -->
             <div class="profile-section">
-                <h2 class="section-title">By Category</h2>
+                <h2 class="section-title">By Category ({{ stats.base_currency }})</h2>
                 <div class="category-list">
                     {% for cat in categories %}
                     <div class="cat-row">
                         <div class="cat-row-header">
                             <span class="cat-row-name">{{ cat.name }}</span>
-                            <span class="cat-row-amount">₹{{ cat.amount }}</span>
+                            <span class="cat-row-amount">{{ currency_symbol(stats.base_currency) }}{{ cat.amount }}</span>
                         </div>
                         <div class="cat-bar-track">
                             <div class="cat-bar cat-bar--{{ cat.name | lower }}"
