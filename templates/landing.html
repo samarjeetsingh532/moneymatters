@@ -2,72 +2,82 @@
 
 {% block title %}Spendly — Track Every Rupee{% endblock %}
 
+{% block head %}<link rel="stylesheet" href="{{ url_for('static', filename='css/landing.css') }}">{% endblock %}
+
 {% block content %}
 
-<section class="hero">
-    <div class="hero-inner">
-        <div class="hero-badge">
-            <span class="hero-badge-dot"></span>
+<section class="hero-v2">
+    <div class="hero-v2-inner">
+
+        <div class="hero-v2-badge">
+            <span class="hero-v2-dot"></span>
             Free to use · No credit card needed
         </div>
-        <h1 class="hero-title">
-            Track every rupee.
-            <span class="hero-title-accent">Know where it goes.</span>
+
+        <h1 class="hero-v2-title">
+            Track every rupee.<br>
+            <span class="hero-v2-title-accent">Know where it goes.</span>
         </h1>
-        <p class="hero-subtitle">
-            Spendly helps you log expenses, spot patterns, and stay
+
+        <p class="hero-v2-subtitle">
+            Spendly helps you log expenses, spot patterns, and stay<br>
             on budget — without the spreadsheet headache.
         </p>
-        <div class="hero-actions">
-            <a href="{{ url_for('register') }}" class="hero-btn">Create free account</a>
-            <a href="#" class="hero-btn" id="how-it-works-btn">See how it works</a>
+
+        <div class="hero-v2-actions">
+            <a href="{{ url_for('register') }}" class="hero-v2-btn">Create free account</a>
+            <a href="#" id="open-demo-modal" class="hero-v2-btn">See how it works</a>
         </div>
-    </div>
-    <div class="hero-visual">
-        <div class="mock-card">
-            <div class="mock-dots">
-                <span class="mock-dot mock-dot-red"></span>
-                <span class="mock-dot mock-dot-yellow"></span>
-                <span class="mock-dot mock-dot-green"></span>
-            </div>
-            <div class="mock-stats">
-                <div class="mock-stat">
-                    <span class="mock-stat-label">This month</span>
-                    <span class="mock-stat-value">₹18,240</span>
-                    <span class="mock-stat-delta mock-stat-delta-down">+12% vs last</span>
+
+        <div class="hero-v2-mock">
+            <div class="mock-browser">
+                <div class="mock-browser-bar">
+                    <span class="mock-dot mock-dot-red"></span>
+                    <span class="mock-dot mock-dot-yellow"></span>
+                    <span class="mock-dot mock-dot-green"></span>
                 </div>
-                <div class="mock-stat">
-                    <span class="mock-stat-label">Budget left</span>
-                    <span class="mock-stat-value">₹6,760</span>
-                    <span class="mock-stat-delta mock-stat-delta-up">43% remaining</span>
-                </div>
-                <div class="mock-stat">
-                    <span class="mock-stat-label">Transactions</span>
-                    <span class="mock-stat-value">34</span>
-                    <span class="mock-stat-delta mock-stat-delta-neutral">this month</span>
-                </div>
-            </div>
-            <div class="mock-bars">
-                <div class="mock-bar-row">
-                    <span class="mock-cat">Food</span>
-                    <div class="mock-bar-track">
-                        <div class="mock-bar mock-bar-food" style="width: 75%"></div>
+                <div class="mock-browser-body">
+                    <div class="mock-stats">
+                        <div class="mock-stat-card">
+                            <span class="mock-stat-label">This month</span>
+                            <span class="mock-stat-value">₹18,240</span>
+                            <span class="mock-stat-sub mock-stat-sub--danger">+12% vs last</span>
+                        </div>
+                        <div class="mock-stat-card">
+                            <span class="mock-stat-label">Budget left</span>
+                            <span class="mock-stat-value">₹6,760</span>
+                            <span class="mock-stat-sub mock-stat-sub--success">43% remaining</span>
+                        </div>
+                        <div class="mock-stat-card">
+                            <span class="mock-stat-label">Transactions</span>
+                            <span class="mock-stat-value">34</span>
+                            <span class="mock-stat-sub">this month</span>
+                        </div>
                     </div>
-                </div>
-                <div class="mock-bar-row">
-                    <span class="mock-cat">Travel</span>
-                    <div class="mock-bar-track">
-                        <div class="mock-bar mock-bar-travel" style="width: 62%"></div>
-                    </div>
-                </div>
-                <div class="mock-bar-row">
-                    <span class="mock-cat">Bills</span>
-                    <div class="mock-bar-track">
-                        <div class="mock-bar mock-bar-bills" style="width: 50%"></div>
+                    <div class="mock-cats">
+                        <div class="mock-cat-row">
+                            <span class="mock-cat-label">Food</span>
+                            <div class="mock-cat-track">
+                                <div class="mock-cat-bar mock-cat-bar--orange" style="width: 75%"></div>
+                            </div>
+                        </div>
+                        <div class="mock-cat-row">
+                            <span class="mock-cat-label">Travel</span>
+                            <div class="mock-cat-track">
+                                <div class="mock-cat-bar mock-cat-bar--blue" style="width: 55%"></div>
+                            </div>
+                        </div>
+                        <div class="mock-cat-row">
+                            <span class="mock-cat-label">Bills</span>
+                            <div class="mock-cat-track">
+                                <div class="mock-cat-bar mock-cat-bar--purple" style="width: 38%"></div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
+
     </div>
 </section>
 
@@ -99,17 +109,62 @@
     </div>
 </section>
 
-<div class="modal-overlay" id="how-it-works-modal" hidden>
+<!-- Demo modal -->
+<div id="demo-modal" class="modal-overlay" aria-hidden="true">
     <div class="modal-box">
-        <button type="button" class="modal-close" id="how-it-works-close" aria-label="Close">&times;</button>
-        <div class="modal-video-wrap">
-            <iframe id="how-it-works-video"
-                    data-src="https://www.youtube.com/embed/M7lc1UVf-VE"
-                    title="How Spendly works"
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                    allowfullscreen></iframe>
+        <button class="modal-close" id="close-demo-modal" aria-label="Close">&times;</button>
+        <div class="modal-video-wrapper">
+            <iframe
+                id="demo-iframe"
+                src=""
+                data-src="https://www.youtube.com/embed/dQw4w9WgXcQ?enablejsapi=1"
+                title="Spendly demo"
+                frameborder="0"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowfullscreen>
+            </iframe>
         </div>
     </div>
 </div>
 
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+    const modal    = document.getElementById('demo-modal');
+    const iframe   = document.getElementById('demo-iframe');
+    const openBtn  = document.getElementById('open-demo-modal');
+    const closeBtn = document.getElementById('close-demo-modal');
+
+    function openModal() {
+        iframe.src = iframe.dataset.src;
+        modal.setAttribute('aria-hidden', 'false');
+        modal.classList.add('is-open');
+        document.body.style.overflow = 'hidden';
+    }
+
+    function closeModal() {
+        iframe.src = '';
+        modal.setAttribute('aria-hidden', 'true');
+        modal.classList.remove('is-open');
+        document.body.style.overflow = '';
+    }
+
+    openBtn.addEventListener('click', function (e) {
+        e.preventDefault();
+        openModal();
+    });
+
+    closeBtn.addEventListener('click', closeModal);
+
+    modal.addEventListener('click', function (e) {
+        if (e.target === modal) closeModal();
+    });
+
+    document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape' && modal.classList.contains('is-open')) closeModal();
+    });
+}());
+</script>
 {% endblock %}

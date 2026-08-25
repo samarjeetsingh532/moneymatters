@@ -2,6 +2,8 @@
 
 {% block title %}Sign in — Spendly{% endblock %}
 
+{% block flash %}{% endblock %}
+
 {% block content %}
 
 <section class="auth-section">
@@ -13,11 +15,7 @@
         </div>
 
         <div class="auth-card">
-            {% if error %}
-            <div class="auth-error">{{ error }}</div>
-            {% endif %}
-
-            <form method="POST" action="/login">
+            <form method="POST" action="{{ url_for('login') }}">
                 <div class="form-group">
                     <label for="email">Email address</label>
                     <input type="email" id="email" name="email"
