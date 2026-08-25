@@ -1,0 +1,68 @@
+........................................................................ [ 52%]
+.FFF..............................................................       [100%]
+================================== FAILURES ===================================
+_ TestQueryHelpers.test_get_summary_stats_sql_injection_in_date_param_does_not_crash _
+
+self = <test_06_date_filter_profile.TestQueryHelpers object at 0x000001FABF5F96D0>
+client = (<FlaskClient <Flask 'app'>>, 75)
+
+    def test_get_summary_stats_sql_injection_in_date_param_does_not_crash(self, client):
+        _, user_id = client
+        with app.app_context():
+            # _parse_date in app.py would reject this as malformed, but we test
+            # the query helper directly to confirm it doesn't error or leak data.
+            result = get_summary_stats(
+                user_id,
+                date_from="'; DROP TABLE expenses; --",
+                date_to=TODAY_STR,
+            )
+        # The parameterized query should produce 0 results safely
+>       assert result["count"] == 0
+E       assert 4 == 0
+
+tests\test_06_date_filter_profile.py:894: AssertionError
+_ TestQueryHelpers.test_get_recent_transactions_sql_injection_does_not_crash __
+
+self = <test_06_date_filter_profile.TestQueryHelpers object at 0x000001FABF5975C0>
+client = (<FlaskClient <Flask 'app'>>, 76)
+
+    def test_get_recent_transactions_sql_injection_does_not_crash(self, client):
+        _, user_id = client
+        with app.app_context():
+            result = get_recent_transactions(
+                user_id,
+                date_from="'; DROP TABLE expenses; --",
+                date_to=TODAY_STR,
+            )
+>       assert result == []
+E       AssertionError: assert [{'amount': '...opping', ...}] == []
+E         
+E         Left contains 4 more items, first extra item: {'amount': '200.00', 'category': 'Transport', 'date': '01 Aug 2026', 'description': 'Metro this month', ...}
+E         Use -v to get more diff
+
+tests\test_06_date_filter_profile.py:904: AssertionError
+__ TestQueryHelpers.test_get_category_breakdown_sql_injection_does_not_crash __
+
+self = <test_06_date_filter_profile.TestQueryHelpers object at 0x000001FABF563550>
+client = (<FlaskClient <Flask 'app'>>, 77)
+
+    def test_get_category_breakdown_sql_injection_does_not_crash(self, client):
+        _, user_id = client
+        with app.app_context():
+            result = get_category_breakdown(
+                user_id,
+                date_from="'; DROP TABLE expenses; --",
+                date_to=TODAY_STR,
+            )
+>       assert result == []
+E       AssertionError: assert [{'amount': '...'percent': 8}] == []
+E         
+E         Left contains 4 more items, first extra item: {'amount': '1,000.00', 'name': 'Bills', 'percent': 42}
+E         Use -v to get more diff
+
+tests\test_06_date_filter_profile.py:914: AssertionError
+=========================== short test summary info ===========================
+FAILED tests/test_06_date_filter_profile.py::TestQueryHelpers::test_get_summary_stats_sql_injection_in_date_param_does_not_crash
+FAILED tests/test_06_date_filter_profile.py::TestQueryHelpers::test_get_recent_transactions_sql_injection_does_not_crash
+FAILED tests/test_06_date_filter_profile.py::TestQueryHelpers::test_get_category_breakdown_sql_injection_does_not_crash
+3 failed, 135 passed in 27.22s

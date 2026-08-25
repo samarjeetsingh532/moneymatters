@@ -452,3 +452,54 @@
     color: var(--ink-faint);
     font-size: 0.875rem;
 }
+
+/* ------------------------------------------------------------------ */
+/* Export section                                                       */
+/* ------------------------------------------------------------------ */
+
+.export-controls {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+}
+
+.export-control-group {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    flex-wrap: wrap;
+}
+
+.export-control-group label {
+    font-size: 0.8rem;
+    font-weight: 500;
+    color: var(--ink-soft);
+}
+
+.export-select {
+    width: auto;
+    padding: 0.5rem 0.75rem;
+}
+
+.export-error {
+    background: var(--danger-light);
+    color: var(--danger);
+    border: 1px solid var(--danger);
+    border-radius: var(--radius-sm);
+    padding: 0.6rem 0.9rem;
+    font-size: 0.85rem;
+    margin-bottom: 1rem;
+}
+
+@media (max-width: 640px) {
+    .export-controls {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .export-control-group {
+        justify-content: space-between;
+    }
+}

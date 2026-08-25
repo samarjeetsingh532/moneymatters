@@ -169,6 +169,34 @@ def get_recent_transactions(user_id, limit=10, date_from=None, date_to=None):
     ]
 
 
+def get_all_transactions(user_id, date_from=None, date_to=None):
+    date_clause, date_params = _build_date_filter(date_from, date_to)
+    params = [user_id] + date_params + [user_id] + date_params
+
+    conn = get_db()
+    rows = conn.execute(
+        "SELECT id, date, description, category, amount, 'expense' AS type "
+        "FROM expenses WHERE user_id = ? " + date_clause + " "
+        "UNION ALL "
+        "SELECT id, date, description, source AS category, amount, 'income' AS type "
+        "FROM income WHERE user_id = ? " + date_clause + " "
+        "ORDER BY date ASC, id ASC",
+        params,
+    ).fetchall()
+    conn.close()
+
+    return [
+        {
+            "date": row["date"],
+            "description": row["description"] or "",
+            "category": row["category"],
+            "amount": row["amount"],
+            "type": row["type"],
+        }
+        for row in rows
+    ]
+
+
 def get_summary_stats(user_id, date_from=None, date_to=None):
     date_clause, date_params = _build_date_filter(date_from, date_to)
     params = [user_id] + date_params

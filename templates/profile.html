@@ -162,6 +162,42 @@
 
         </div>
 
+        <!-- Export section -->
+        <div class="profile-section export-section">
+            <div class="section-title-row">
+                <h2 class="section-title">Export Your Data</h2>
+            </div>
+            <p id="export-error" class="export-error" hidden></p>
+            <div class="export-controls">
+                <div class="export-control-group">
+                    <label for="export-month">Month</label>
+                    <select id="export-month" class="form-input export-select">
+                        {% for name in month_names %}
+                        <option value="{{ loop.index }}" {% if loop.index == current_month %}selected{% endif %}>{{ name }}</option>
+                        {% endfor %}
+                    </select>
+                    <label for="export-year">Year</label>
+                    <select id="export-year" class="form-input export-select">
+                        {% for y in export_years %}
+                        <option value="{{ y }}" {% if y == current_year %}selected{% endif %}>{{ y }}</option>
+                        {% endfor %}
+                    </select>
+                    <button type="button" id="download-monthly-btn" class="btn-primary"
+                            data-loading-text="Generating…"
+                            data-export-url="{{ url_for('export_monthly') }}">
+                        Download Monthly Excel
+                    </button>
+                </div>
+                <div class="export-control-group">
+                    <button type="button" id="download-full-btn" class="btn-ghost"
+                            data-loading-text="Generating…"
+                            data-export-url="{{ url_for('export_full') }}">
+                        Download Full Database Excel
+                    </button>
+                </div>
+            </div>
+        </div>
+
     </div>
 </div>
 {% endblock %}

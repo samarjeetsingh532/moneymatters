@@ -98,6 +98,7 @@ def _setup_db():
 
     # Remove any leftover data from previous test run
     conn.execute("DELETE FROM expenses")
+    conn.execute("DELETE FROM income")
     conn.execute("DELETE FROM users")
     conn.commit()
 
@@ -144,6 +145,7 @@ def client():
     with app.app_context():
         conn = get_db()
         conn.execute("DELETE FROM expenses")
+        conn.execute("DELETE FROM income")
         conn.execute("DELETE FROM users")
         conn.commit()
         conn.close()

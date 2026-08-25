@@ -1,4 +1,5 @@
 import calendar
+import io
 import sqlite3
 from datetime import date, datetime
 
@@ -6,18 +7,23 @@ from flask import (
     Flask,
     abort,
     flash,
+    jsonify,
     redirect,
     render_template,
     request,
+    send_file,
     session,
     url_for,
 )
+from openpyxl import Workbook
+from openpyxl.styles import Font
 from werkzeug.security import check_password_hash
 
 from database.db import create_user, get_db, get_user_by_email, init_db, seed_db
 from database.queries import (
     delete_expense_by_id,
     delete_income_by_id,
+    get_all_transactions,
     get_category_breakdown,
     get_expense_by_id,
     get_income_by_id,
@@ -71,6 +77,50 @@ def _months_ago(today, n):
         m += 12
         y -= 1
     return date(y, m, 1).isoformat()
+
+
+def _build_transactions_workbook(transactions):
+    workbook = Workbook()
+    sheet = workbook.active
+    sheet.title = "Transactions"
+
+    sheet.append(["Date", "Description", "Category", "Type", "Amount"])
+    for cell in sheet[1]:
+        cell.font = Font(bold=True)
+
+    for tx in transactions:
+        sheet.append(
+            [
+                datetime.strptime(tx["date"], "%Y-%m-%d").date(),
+                tx["description"],
+                tx["category"],
+                "Income" if tx["type"] == "income" else "Expense",
+                tx["amount"],
+            ]
+        )
+
+    for row in sheet.iter_rows(min_row=2, min_col=1, max_col=1):
+        row[0].number_format = "yyyy-mm-dd"
+    for row in sheet.iter_rows(min_row=2, min_col=5, max_col=5):
+        row[0].number_format = "#,##0.00"
+
+    widths = {"A": 14, "B": 34, "C": 16, "D": 10, "E": 14}
+    for column, width in widths.items():
+        sheet.column_dimensions[column].width = width
+
+    return workbook
+
+
+def _send_workbook(workbook, filename):
+    buffer = io.BytesIO()
+    workbook.save(buffer)
+    buffer.seek(0)
+    return send_file(
+        buffer,
+        mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        as_attachment=True,
+        download_name=filename,
+    )
 
 
 # ------------------------------------------------------------------ #
@@ -191,6 +241,10 @@ def profile():
         date_from=date_from,
         date_to=date_to,
         presets=presets,
+        month_names=list(calendar.month_name)[1:],
+        export_years=list(range(today.year - 5, today.year + 1)),
+        current_month=today.month,
+        current_year=today.year,
     )
 
 
@@ -447,6 +501,44 @@ def delete_income(id):
 
     delete_income_by_id(id, session["user_id"])
     return redirect(url_for("profile"))
+
+
+# Export routes respond with JSON errors instead of redirecting to /login,
+# since they're called via fetch() from the download buttons, not page navigation.
+
+
+@app.route("/export/monthly")
+def export_monthly():
+    if not session.get("user_id"):
+        return jsonify({"error": "Please sign in to export your data."}), 401
+
+    try:
+        year = int(request.args.get("year", ""))
+        month = int(request.args.get("month", ""))
+        if not (1 <= month <= 12):
+            raise ValueError
+    except ValueError:
+        return jsonify({"error": "Please select a valid month and year."}), 400
+
+    date_from = date(year, month, 1).isoformat()
+    date_to = date(year, month, calendar.monthrange(year, month)[1]).isoformat()
+
+    transactions = get_all_transactions(
+        session["user_id"], date_from=date_from, date_to=date_to
+    )
+    workbook = _build_transactions_workbook(transactions)
+    filename = "expenses_income_{:04d}_{:02d}.xlsx".format(year, month)
+    return _send_workbook(workbook, filename)
+
+
+@app.route("/export/full")
+def export_full():
+    if not session.get("user_id"):
+        return jsonify({"error": "Please sign in to export your data."}), 401
+
+    transactions = get_all_transactions(session["user_id"])
+    workbook = _build_transactions_workbook(transactions)
+    return _send_workbook(workbook, "expenses_income_full.xlsx")
 
 
 if __name__ == "__main__":
