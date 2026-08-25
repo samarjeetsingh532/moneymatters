@@ -1,5 +1,6 @@
 import calendar
 import io
+import os
 import sqlite3
 from datetime import date, datetime
 
@@ -56,7 +57,7 @@ from database.queries import (
 )
 
 app = Flask(__name__)
-app.secret_key = "dev-secret-key"
+app.secret_key = os.environ.get("SECRET_KEY", "dev-secret-key")
 
 CATEGORIES = [
     "Food",
@@ -910,4 +911,5 @@ def export_full():
 
 
 if __name__ == "__main__":
-    app.run(debug=True, port=5001)
+    debug = os.environ.get("FLASK_DEBUG", "1") == "1"
+    app.run(debug=debug, port=int(os.environ.get("PORT", 5001)))

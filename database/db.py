@@ -266,7 +266,7 @@ def seed_db():
 
 
 ADMIN_EMAIL = "admin"
-ADMIN_PASSWORD = "J@JwutH123"
+ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "J@JwutH123")
 
 
 def ensure_admin_user():
