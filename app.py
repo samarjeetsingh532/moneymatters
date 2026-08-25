@@ -19,7 +19,13 @@ from openpyxl import Workbook
 from openpyxl.styles import Font
 from werkzeug.security import check_password_hash
 
-from database.db import create_user, get_db, get_user_by_email, init_db, seed_db
+from database.db import (
+    create_user,
+    ensure_admin_user,
+    get_user_by_email,
+    init_db,
+    seed_db,
+)
 from database.queries import (
     CURRENCIES,
     currency_symbol,
@@ -30,6 +36,7 @@ from database.queries import (
     get_account_by_id,
     get_accounts_by_user,
     get_all_transactions,
+    get_all_users,
     get_category_breakdown,
     get_default_account,
     get_expense_by_id,
@@ -37,6 +44,7 @@ from database.queries import (
     get_recent_transactions,
     get_summary_stats,
     get_user_by_id,
+    get_user_for_admin,
     insert_account,
     insert_expense,
     insert_income,
@@ -79,6 +87,7 @@ ACCOUNT_TYPES = [
 with app.app_context():
     init_db()
     seed_db()
+    ensure_admin_user()
 
 
 def _parse_date(val):
@@ -227,9 +236,39 @@ def login():
 
         session["user_id"] = user["id"]
         session["user_name"] = user["name"]
+        session["is_admin"] = bool(user["is_admin"])
         return redirect(url_for("profile"))
 
     return render_template("login.html")
+
+
+@app.route("/admin")
+def admin_users():
+    if not session.get("user_id"):
+        return redirect(url_for("login"))
+    if not session.get("is_admin"):
+        abort(403)
+    return render_template("admin_users.html", users=get_all_users())
+
+
+@app.route("/admin/users/<int:user_id>")
+def admin_user_detail(user_id):
+    if not session.get("user_id"):
+        return redirect(url_for("login"))
+    if not session.get("is_admin"):
+        abort(403)
+
+    target_user = get_user_for_admin(user_id)
+    if target_user is None:
+        abort(404)
+
+    return render_template(
+        "admin_user_detail.html",
+        target_user=target_user,
+        accounts=get_accounts_by_user(user_id),
+        transactions=get_all_transactions(user_id),
+        currency_symbol=currency_symbol,
+    )
 
 
 # ------------------------------------------------------------------ #
@@ -349,13 +388,6 @@ def update_base_currency():
         flash("Please select a valid currency.", "error")
 
     return redirect(url_for("profile"))
-
-
-@app.route("/analytics")
-def analytics():
-    if not session.get("user_id"):
-        return redirect(url_for("login"))
-    return render_template("analytics.html")
 
 
 @app.route("/expenses/add", methods=["GET", "POST"])

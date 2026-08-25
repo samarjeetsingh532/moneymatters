@@ -1,0 +1,58 @@
+{# templates/admin_users.html #}
+{% extends "base.html" %}
+
+{% block title %}Admin — Spendly{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/profile.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="profile-page">
+    <div class="profile-inner">
+
+        <div class="profile-header-card">
+            <div class="profile-info">
+                <h1 class="profile-name">Admin Dashboard</h1>
+                <p class="profile-email">All registered Spendly users</p>
+            </div>
+        </div>
+
+        <div class="profile-section">
+            <div class="tx-table-wrapper">
+                <table class="tx-table">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Email</th>
+                            <th>Base Currency</th>
+                            <th>Joined</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for u in users %}
+                        <tr>
+                            <td>{{ u.name }}{% if u.is_admin %}<span class="admin-badge">Admin</span>{% endif %}</td>
+                            <td>{{ u.email }}</td>
+                            <td>{{ u.base_currency }}</td>
+                            <td class="tx-date">{{ u.created_at }}</td>
+                            <td class="tx-actions">
+                                <a href="{{ url_for('admin_user_detail', user_id=u.id) }}" class="tx-edit-link">View</a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                        {% if not users %}
+                        <tr>
+                            <td colspan="5" class="tx-empty">No users found.</td>
+                        </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+</div>
+{% endblock %}

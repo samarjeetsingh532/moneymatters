@@ -1,0 +1,96 @@
+{# templates/admin_user_detail.html #}
+{% extends "base.html" %}
+
+{% block title %}{{ target_user.name }} — Admin — Spendly{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/profile.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/accounts.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="profile-page">
+    <div class="profile-inner">
+
+        <div class="profile-header-card">
+            <div class="profile-info">
+                <h1 class="profile-name">{{ target_user.name }}{% if target_user.is_admin %}<span class="admin-badge">Admin</span>{% endif %}</h1>
+                <p class="profile-email">{{ target_user.email }} · Member since {{ target_user.member_since }} · Base currency {{ target_user.base_currency }}</p>
+            </div>
+            <div class="profile-header-actions">
+                <a href="{{ url_for('admin_users') }}" class="btn-ghost">&larr; Back to Admin</a>
+            </div>
+        </div>
+
+        <div class="profile-section">
+            <h2 class="section-title">Accounts</h2>
+            <div class="account-grid">
+                {% for account in accounts %}
+                <div class="account-card {{ '' if account.is_active else 'account-card--inactive' }}">
+                    <div class="account-card-header">
+                        <span class="account-card-name">{{ account.name }}</span>
+                        {% if not account.is_active %}
+                        <span class="account-status-badge">Inactive</span>
+                        {% endif %}
+                    </div>
+                    <div class="account-card-balance">
+                        {{ currency_symbol(account.currency) }}{{ "{:,.2f}".format(account.current_balance) }}
+                    </div>
+                    <div class="account-card-meta">
+                        <span class="account-type-badge">{{ account.account_type }}</span>
+                        <span class="account-currency-badge">{{ account.currency }}</span>
+                    </div>
+                    {% if account.description %}
+                    <p class="account-card-description">{{ account.description }}</p>
+                    {% endif %}
+                </div>
+                {% endfor %}
+                {% if not accounts %}
+                <p class="tx-empty">This user has no accounts.</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="profile-section">
+            <h2 class="section-title">All Transactions</h2>
+            <div class="tx-table-wrapper">
+                <table class="tx-table">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Description</th>
+                            <th>Category</th>
+                            <th>Account</th>
+                            <th class="tx-amount-col">Amount</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for tx in transactions %}
+                        <tr>
+                            <td class="tx-date">{{ tx.date }}</td>
+                            <td class="tx-desc">{{ tx.description }}</td>
+                            <td>
+                                <span class="cat-badge {{ 'cat-badge--income' if tx.type == 'income' else 'cat-badge--' ~ tx.category | lower }}">
+                                    {{ tx.category }}
+                                </span>
+                            </td>
+                            <td class="tx-account">{{ tx.account_name }}</td>
+                            <td class="tx-amount tx-amount--{{ tx.type }}">
+                                {{ '+' if tx.type == 'income' else '-' }}{{ currency_symbol(tx.currency) }}{{ "{:,.2f}".format(tx.amount) }}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                        {% if not transactions %}
+                        <tr>
+                            <td colspan="5" class="tx-empty">No transactions for this user.</td>
+                        </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+</div>
+{% endblock %}

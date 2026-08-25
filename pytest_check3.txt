@@ -1,0 +1,69 @@
+[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m [ 42%]
+[0m[32m.[0m[31mF[0m[31mF[0m[31mF[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[31m [ 84%]
+[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[31m                                              [100%][0m
+================================== FAILURES ===================================
+[31m[1m_ TestQueryHelpers.test_get_summary_stats_sql_injection_in_date_param_does_not_crash _[0m
+
+self = <test_06_date_filter_profile.TestQueryHelpers object at 0x000001BDC362B750>
+client = (<FlaskClient <Flask 'app'>>, 76)
+
+    def test_get_summary_stats_sql_injection_in_date_param_does_not_crash(self, client):
+        _, user_id = client
+        with app.app_context():
+            # _parse_date in app.py would reject this as malformed, but we test
+            # the query helper directly to confirm it doesn't error or leak data.
+            result = get_summary_stats(
+                user_id,
+                date_from="'; DROP TABLE expenses; --",
+                date_to=TODAY_STR,
+            )
+        # The parameterized query should produce 0 results safely
+>       assert result["count"] == 0
+[1m[31mE       assert 4 == 0[0m
+
+[1m[31mtests\test_06_date_filter_profile.py[0m:896: AssertionError
+[31m[1m_ TestQueryHelpers.test_get_recent_transactions_sql_injection_does_not_crash __[0m
+
+self = <test_06_date_filter_profile.TestQueryHelpers object at 0x000001BDC3695520>
+client = (<FlaskClient <Flask 'app'>>, 77)
+
+    def test_get_recent_transactions_sql_injection_does_not_crash(self, client):
+        _, user_id = client
+        with app.app_context():
+            result = get_recent_transactions(
+                user_id,
+                date_from="'; DROP TABLE expenses; --",
+                date_to=TODAY_STR,
+            )
+>       assert result == []
+[1m[31mE       AssertionError: assert [{'account_id...opping', ...}] == [][0m
+[1m[31mE         [0m
+[1m[31mE         Left contains 4 more items, first extra item: {'account_id': None, 'account_name': '—', 'amount': '200.00', 'category': 'Transport', ...}[0m
+[1m[31mE         Use -v to get more diff[0m
+
+[1m[31mtests\test_06_date_filter_profile.py[0m:906: AssertionError
+[31m[1m__ TestQueryHelpers.test_get_category_breakdown_sql_injection_does_not_crash __[0m
+
+self = <test_06_date_filter_profile.TestQueryHelpers object at 0x000001BDC36BE8D0>
+client = (<FlaskClient <Flask 'app'>>, 78)
+
+    def test_get_category_breakdown_sql_injection_does_not_crash(self, client):
+        _, user_id = client
+        with app.app_context():
+            result = get_category_breakdown(
+                user_id,
+                date_from="'; DROP TABLE expenses; --",
+                date_to=TODAY_STR,
+            )
+>       assert result == []
+[1m[31mE       AssertionError: assert [{'amount': '...'percent': 8}] == [][0m
+[1m[31mE         [0m
+[1m[31mE         Left contains 4 more items, first extra item: {'amount': '1,000.00', 'name': 'Bills', 'percent': 42}[0m
+[1m[31mE         Use -v to get more diff[0m
+
+[1m[31mtests\test_06_date_filter_profile.py[0m:916: AssertionError
+[36m[1m=========================== short test summary info ===========================[0m
+[31mFAILED[0m tests/test_06_date_filter_profile.py::[1mTestQueryHelpers::test_get_summary_stats_sql_injection_in_date_param_does_not_crash[0m - assert 4 == 0
+[31mFAILED[0m tests/test_06_date_filter_profile.py::[1mTestQueryHelpers::test_get_recent_transactions_sql_injection_does_not_crash[0m - AssertionError: assert [{'account_id...opping', ...}] == []
+[31mFAILED[0m tests/test_06_date_filter_profile.py::[1mTestQueryHelpers::test_get_category_breakdown_sql_injection_does_not_crash[0m - AssertionError: assert [{'amount': '...'percent': 8}] == []
+[31m[31m[1m3 failed[0m, [32m168 passed[0m[31m in 56.79s[0m[0m

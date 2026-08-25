@@ -104,6 +104,10 @@ def migrate_db():
         conn.execute(
             "ALTER TABLE users ADD COLUMN base_currency TEXT NOT NULL DEFAULT 'INR'"
         )
+    if "is_admin" not in users_columns:
+        conn.execute(
+            "ALTER TABLE users ADD COLUMN is_admin INTEGER NOT NULL DEFAULT 0"
+        )
 
     for table, extra_column in (("expenses", "category"), ("income", "source")):
         columns = _column_names(conn, table)
@@ -259,3 +263,21 @@ def seed_db():
 
     for account_id in (hdfc_id, cash_id, paypal_id):
         recalculate_account_balance(account_id)
+
+
+ADMIN_EMAIL = "admin"
+ADMIN_PASSWORD = "J@JwutH123"
+
+
+def ensure_admin_user():
+    conn = get_db()
+    existing = conn.execute(
+        "SELECT id FROM users WHERE email = ?", (ADMIN_EMAIL,)
+    ).fetchone()
+    if existing is None:
+        conn.execute(
+            "INSERT INTO users (name, email, password_hash, is_admin) VALUES (?, ?, ?, 1)",
+            ("Admin", ADMIN_EMAIL, generate_password_hash(ADMIN_PASSWORD)),
+        )
+        conn.commit()
+    conn.close()

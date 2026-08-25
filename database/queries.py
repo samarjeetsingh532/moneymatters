@@ -460,6 +460,41 @@ def get_user_by_id(user_id):
     }
 
 
+def get_all_users():
+    conn = get_db()
+    rows = conn.execute(
+        "SELECT id, name, email, base_currency, is_admin, created_at FROM users "
+        "ORDER BY is_admin DESC, name ASC"
+    ).fetchall()
+    conn.close()
+    return [dict(row) for row in rows]
+
+
+def get_user_for_admin(user_id):
+    conn = get_db()
+    row = conn.execute(
+        "SELECT id, name, email, base_currency, is_admin, created_at FROM users WHERE id = ?",
+        (user_id,),
+    ).fetchone()
+    conn.close()
+
+    if row is None:
+        return None
+
+    member_since = datetime.strptime(row["created_at"], "%Y-%m-%d %H:%M:%S").strftime(
+        "%B %Y"
+    )
+
+    return {
+        "id": row["id"],
+        "name": row["name"],
+        "email": row["email"],
+        "base_currency": row["base_currency"],
+        "is_admin": bool(row["is_admin"]),
+        "member_since": member_since,
+    }
+
+
 def update_user_base_currency(user_id, currency):
     conn = get_db()
     conn.execute(

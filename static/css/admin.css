@@ -1,0 +1,13 @@
+.admin-badge {
+    display: inline-block;
+    padding: 0.15rem 0.6rem;
+    border-radius: 999px;
+    font-size: 0.65rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    background: var(--accent-light);
+    color: var(--accent);
+    vertical-align: middle;
+    margin-left: 0.4rem;
+}
