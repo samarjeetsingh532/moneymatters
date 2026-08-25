@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+
+{% block title %}Edit Income — Spendly{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/add_expense.css') }}">
+{% endblock %}
+
+{% block content %}
+<section class="auth-section">
+    <div class="auth-container">
+
+        <div class="auth-header">
+            <h1 class="auth-title">Edit Income</h1>
+            <p class="auth-subtitle">Update your income details</p>
+        </div>
+
+        <div class="auth-card">
+            <form method="POST" action="{{ url_for('edit_income', id=income.id) }}">
+
+                <div class="form-group">
+                    <label for="amount">Amount (₹)</label>
+                    <input type="number" id="amount" name="amount"
+                           class="form-input"
+                           placeholder="0.00"
+                           step="0.01" min="0.01"
+                           value="{{ form.get('amount', income.amount) }}"
+                           required autofocus>
+                </div>
+
+                <div class="form-group">
+                    <label for="source">Source</label>
+                    {% set selected_source = form.get('source', income.source) %}
+                    <select id="source" name="source" class="form-input form-select" required>
+                        <option value="" disabled {% if not selected_source %}selected{% endif %}>Select a source</option>
+                        {% for s in sources %}
+                        <option value="{{ s }}" {% if selected_source == s %}selected{% endif %}>{{ s }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="date">Date</label>
+                    <input type="date" id="date" name="date"
+                           class="form-input"
+                           value="{{ form.get('date', income.date) }}"
+                           required>
+                </div>
+
+                <div class="form-group">
+                    <label for="description">Description <span class="field-optional">(optional)</span></label>
+                    <textarea id="description" name="description"
+                              class="form-input form-textarea"
+                              placeholder="Where did this come from?"
+                              maxlength="200">{{ form.get('description', income.description) }}</textarea>
+                </div>
+
+                <button type="submit" class="btn-submit">Save Changes</button>
+
+            </form>
+        </div>
+
+        <p class="auth-switch">
+            <a href="{{ url_for('profile') }}">← Back to profile</a>
+        </p>
+
+    </div>
+</section>
+{% endblock %}

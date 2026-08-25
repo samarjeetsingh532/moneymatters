@@ -56,6 +56,59 @@ def insert_expense(user_id, amount, category, expense_date, description):
     return expense_id
 
 
+def get_income_by_id(income_id, user_id):
+    conn = get_db()
+    row = conn.execute(
+        "SELECT id, amount, source, date, description "
+        "FROM income WHERE id = ? AND user_id = ?",
+        (income_id, user_id),
+    ).fetchone()
+    conn.close()
+    if row is None:
+        return None
+    return {
+        "id": row["id"],
+        "amount": row["amount"],
+        "source": row["source"],
+        "date": row["date"],
+        "description": row["description"] or "",
+    }
+
+
+def update_income(income_id, user_id, amount, source, income_date, description):
+    conn = get_db()
+    conn.execute(
+        "UPDATE income SET amount = ?, source = ?, date = ?, description = ? "
+        "WHERE id = ? AND user_id = ?",
+        (amount, source, income_date, description or None, income_id, user_id),
+    )
+    conn.commit()
+    conn.close()
+
+
+def delete_income_by_id(income_id, user_id):
+    conn = get_db()
+    conn.execute(
+        "DELETE FROM income WHERE id = ? AND user_id = ?",
+        (income_id, user_id),
+    )
+    conn.commit()
+    conn.close()
+
+
+def insert_income(user_id, amount, source, income_date, description):
+    conn = get_db()
+    cursor = conn.execute(
+        "INSERT INTO income (user_id, amount, source, date, description)"
+        " VALUES (?, ?, ?, ?, ?)",
+        (user_id, amount, source, income_date, description or None),
+    )
+    conn.commit()
+    income_id = cursor.lastrowid
+    conn.close()
+    return income_id
+
+
 def _build_date_filter(date_from, date_to):
     if date_from and date_to:
         return "AND date BETWEEN ? AND ?", [date_from, date_to]
@@ -89,14 +142,16 @@ def get_user_by_id(user_id):
 
 def get_recent_transactions(user_id, limit=10, date_from=None, date_to=None):
     date_clause, date_params = _build_date_filter(date_from, date_to)
-    params = [user_id] + date_params + [limit]
+    params = [user_id] + date_params + [user_id] + date_params + [limit]
 
     conn = get_db()
     rows = conn.execute(
-        "SELECT id, date, description, category, amount "
-        "FROM expenses "
-        "WHERE user_id = ? " + date_clause + " ORDER BY date DESC, id DESC "
-        "LIMIT ?",
+        "SELECT id, date, description, category, amount, 'expense' AS type "
+        "FROM expenses WHERE user_id = ? " + date_clause + " "
+        "UNION ALL "
+        "SELECT id, date, description, source AS category, amount, 'income' AS type "
+        "FROM income WHERE user_id = ? " + date_clause + " "
+        "ORDER BY date DESC, id DESC LIMIT ?",
         params,
     ).fetchall()
     conn.close()
@@ -108,6 +163,7 @@ def get_recent_transactions(user_id, limit=10, date_from=None, date_to=None):
             "description": row["description"],
             "category": row["category"],
             "amount": "{:,.2f}".format(row["amount"]),
+            "type": row["type"],
         }
         for row in rows
     ]
@@ -132,12 +188,24 @@ def get_summary_stats(user_id, date_from=None, date_to=None):
         + " GROUP BY category ORDER BY SUM(amount) DESC LIMIT 1",
         params,
     ).fetchone()
+
+    income_row = conn.execute(
+        "SELECT COALESCE(SUM(amount), 0) AS total "
+        "FROM income WHERE user_id = ? " + date_clause,
+        params,
+    ).fetchone()
     conn.close()
+
+    income_total = income_row["total"]
+    balance = income_total - total_value
 
     return {
         "total": "{:,.2f}".format(total_value),
         "count": count,
         "top_category": cat_row["category"] if cat_row else "—",
+        "total_income": "{:,.2f}".format(income_total),
+        "balance": "{:,.2f}".format(balance),
+        "balance_raw": balance,
     }
 
 

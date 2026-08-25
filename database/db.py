@@ -33,6 +33,16 @@ def init_db():
             description TEXT,
             created_at  TEXT    DEFAULT (datetime('now'))
         );
+
+        CREATE TABLE IF NOT EXISTS income (
+            id          INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id     INTEGER NOT NULL REFERENCES users(id),
+            amount      REAL    NOT NULL,
+            source      TEXT    NOT NULL,
+            date        TEXT    NOT NULL,
+            description TEXT,
+            created_at  TEXT    DEFAULT (datetime('now'))
+        );
     """)
     conn.commit()
     conn.close()
@@ -87,6 +97,17 @@ def seed_db():
     conn.executemany(
         "INSERT INTO expenses (user_id, amount, category, date, description) VALUES (?, ?, ?, ?, ?)",
         expenses,
+    )
+
+    income = [
+        (user_id, 45000.00, "Salary",     "2026-04-01", "April salary"),
+        (user_id, 5000.00,  "Freelance",  "2026-04-10", "Logo design project"),
+        (user_id, 1200.00,  "Investment", "2026-04-15", "Dividend payout"),
+    ]
+
+    conn.executemany(
+        "INSERT INTO income (user_id, amount, source, date, description) VALUES (?, ?, ?, ?, ?)",
+        income,
     )
     conn.commit()
     conn.close()

@@ -71,8 +71,13 @@
     padding: 2rem;
 }
 
-.profile-add-btn {
+.profile-header-actions {
     margin-left: auto;
+    display: flex;
+    gap: 0.75rem;
+}
+
+.profile-add-btn {
     white-space: nowrap;
 }
 
@@ -115,7 +120,7 @@
 
 .profile-stats {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
     gap: 1rem;
 }
 
@@ -141,6 +146,9 @@
     font-variant-numeric: tabular-nums;
     line-height: 1.1;
 }
+
+.stat-value--positive { color: var(--accent); }
+.stat-value--negative { color: var(--danger); }
 
 /* ------------------------------------------------------------------ */
 /* Bottom two-column grid                                              */
@@ -243,6 +251,9 @@
     white-space: nowrap;
 }
 
+.tx-amount--income { color: var(--accent); }
+.tx-amount--expense { color: var(--danger); }
+
 /* ------------------------------------------------------------------ */
 /* Category badges                                                      */
 /* ------------------------------------------------------------------ */
@@ -263,6 +274,7 @@
 .cat-badge--entertainment { background: var(--cat-entertainment-bg); color: var(--cat-entertainment); }
 .cat-badge--shopping      { background: var(--cat-shopping-bg);      color: var(--cat-shopping);      }
 .cat-badge--other         { background: var(--cat-other-bg);         color: var(--cat-other);         }
+.cat-badge--income        { background: var(--accent-light);        color: var(--accent);            }
 
 /* ------------------------------------------------------------------ */
 /* Category breakdown                                                   */
@@ -322,10 +334,6 @@
 @media (max-width: 900px) {
     .profile-grid {
         grid-template-columns: 1fr;
-    }
-
-    .profile-stats {
-        grid-template-columns: repeat(3, 1fr);
     }
 }
 

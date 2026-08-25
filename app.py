@@ -17,13 +17,17 @@ from werkzeug.security import check_password_hash
 from database.db import create_user, get_db, get_user_by_email, init_db, seed_db
 from database.queries import (
     delete_expense_by_id,
+    delete_income_by_id,
     get_category_breakdown,
     get_expense_by_id,
+    get_income_by_id,
     get_recent_transactions,
     get_summary_stats,
     get_user_by_id,
     insert_expense,
+    insert_income,
     update_expense,
+    update_income,
 )
 
 app = Flask(__name__)
@@ -36,6 +40,15 @@ CATEGORIES = [
     "Health",
     "Entertainment",
     "Shopping",
+    "Other",
+]
+
+INCOME_SOURCES = [
+    "Salary",
+    "Freelance",
+    "Business",
+    "Investment",
+    "Gift",
     "Other",
 ]
 
@@ -173,7 +186,7 @@ def profile():
         "profile.html",
         user=get_user_by_id(uid),
         stats=get_summary_stats(uid, date_from, date_to),
-        expenses=get_recent_transactions(uid, date_from=date_from, date_to=date_to),
+        transactions=get_recent_transactions(uid, date_from=date_from, date_to=date_to),
         categories=get_category_breakdown(uid, date_from, date_to),
         date_from=date_from,
         date_to=date_to,
@@ -309,6 +322,130 @@ def delete_expense(id):
         abort(404)
 
     delete_expense_by_id(id, session["user_id"])
+    return redirect(url_for("profile"))
+
+
+@app.route("/income/add", methods=["GET", "POST"])
+def add_income():
+    if not session.get("user_id"):
+        return redirect(url_for("login"))
+
+    today = date.today().isoformat()
+
+    if request.method == "POST":
+        amount_raw = request.form.get("amount", "").strip()
+        source = request.form.get("source", "").strip()
+        income_date = request.form.get("date", "").strip()
+        description = request.form.get("description", "").strip()
+
+        try:
+            amount = float(amount_raw)
+            if amount <= 0:
+                raise ValueError
+        except ValueError:
+            flash("Amount must be a positive number.", "error")
+            return render_template(
+                "add_income.html",
+                sources=INCOME_SOURCES,
+                form=request.form,
+                today=today,
+            )
+
+        if source not in INCOME_SOURCES:
+            flash("Please select a valid source.", "error")
+            return render_template(
+                "add_income.html",
+                sources=INCOME_SOURCES,
+                form=request.form,
+                today=today,
+            )
+
+        if not _parse_date(income_date):
+            flash("Please enter a valid date.", "error")
+            return render_template(
+                "add_income.html",
+                sources=INCOME_SOURCES,
+                form=request.form,
+                today=today,
+            )
+
+        insert_income(session["user_id"], amount, source, income_date, description)
+        flash("Income added.", "success")
+        return redirect(url_for("profile"))
+
+    return render_template(
+        "add_income.html", sources=INCOME_SOURCES, form={}, today=today
+    )
+
+
+@app.route("/income/<int:id>/edit", methods=["GET", "POST"])
+def edit_income(id):
+    if not session.get("user_id"):
+        return redirect(url_for("login"))
+
+    income = get_income_by_id(id, session["user_id"])
+    if income is None:
+        abort(404)
+
+    if request.method == "GET":
+        return render_template(
+            "edit_income.html",
+            income=income,
+            sources=INCOME_SOURCES,
+            form={},
+        )
+
+    amount_raw = request.form.get("amount", "").strip()
+    source = request.form.get("source", "").strip()
+    income_date = request.form.get("date", "").strip()
+    description = request.form.get("description", "").strip()
+
+    try:
+        amount = float(amount_raw)
+        if amount <= 0:
+            raise ValueError
+    except ValueError:
+        flash("Amount must be a positive number.", "error")
+        return render_template(
+            "edit_income.html",
+            income=income,
+            sources=INCOME_SOURCES,
+            form=request.form,
+        )
+
+    if source not in INCOME_SOURCES:
+        flash("Please select a valid source.", "error")
+        return render_template(
+            "edit_income.html",
+            income=income,
+            sources=INCOME_SOURCES,
+            form=request.form,
+        )
+
+    if not _parse_date(income_date):
+        flash("Please enter a valid date.", "error")
+        return render_template(
+            "edit_income.html",
+            income=income,
+            sources=INCOME_SOURCES,
+            form=request.form,
+        )
+
+    update_income(id, session["user_id"], amount, source, income_date, description)
+    flash("Income updated.", "success")
+    return redirect(url_for("profile"))
+
+
+@app.route("/income/<int:id>/delete", methods=["POST"])
+def delete_income(id):
+    if not session.get("user_id"):
+        return redirect(url_for("login"))
+
+    income = get_income_by_id(id, session["user_id"])
+    if income is None:
+        abort(404)
+
+    delete_income_by_id(id, session["user_id"])
     return redirect(url_for("profile"))
 
 

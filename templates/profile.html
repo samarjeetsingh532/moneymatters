@@ -19,7 +19,10 @@
                 <p class="profile-email">{{ user.email }}</p>
                 <p class="profile-since">Member since {{ user.member_since }}</p>
             </div>
-            <a href="{{ url_for('add_expense') }}" class="btn-primary profile-add-btn">+ Add Expense</a>
+            <div class="profile-header-actions">
+                <a href="{{ url_for('add_income') }}" class="btn-ghost profile-add-btn">+ Add Income</a>
+                <a href="{{ url_for('add_expense') }}" class="btn-primary profile-add-btn">+ Add Expense</a>
+            </div>
         </div>
 
         <!-- Filter bar -->
@@ -56,11 +59,19 @@
         <!-- Summary stats row -->
         <div class="profile-stats">
             <div class="stat-card">
+                <span class="stat-label">Balance</span>
+                <span class="stat-value {{ 'stat-value--negative' if stats.balance_raw < 0 else 'stat-value--positive' }}">₹{{ stats.balance }}</span>
+            </div>
+            <div class="stat-card">
+                <span class="stat-label">Total Income</span>
+                <span class="stat-value">₹{{ stats.total_income }}</span>
+            </div>
+            <div class="stat-card">
                 <span class="stat-label">Total Spent</span>
                 <span class="stat-value">₹{{ stats.total }}</span>
             </div>
             <div class="stat-card">
-                <span class="stat-label">Transactions</span>
+                <span class="stat-label">Expenses</span>
                 <span class="stat-value">{{ stats.count }}</span>
             </div>
             <div class="stat-card">
@@ -89,27 +100,38 @@
                             </tr>
                         </thead>
                         <tbody>
-                            {% for tx in expenses %}
+                            {% for tx in transactions %}
                             <tr>
                                 <td class="tx-date">{{ tx.date }}</td>
                                 <td class="tx-desc">{{ tx.description }}</td>
                                 <td>
-                                    <span class="cat-badge cat-badge--{{ tx.category | lower }}">
+                                    <span class="cat-badge {{ 'cat-badge--income' if tx.type == 'income' else 'cat-badge--' ~ tx.category | lower }}">
                                         {{ tx.category }}
                                     </span>
                                 </td>
-                                <td class="tx-amount">₹{{ tx.amount }}</td>
+                                <td class="tx-amount tx-amount--{{ tx.type }}">
+                                    {{ '+' if tx.type == 'income' else '-' }}₹{{ tx.amount }}
+                                </td>
                                 <td class="tx-actions">
+                                    {% if tx.type == 'income' %}
+                                    <a href="{{ url_for('edit_income', id=tx.id) }}" class="tx-edit-link">Edit</a>
+                                    <form method="POST" action="{{ url_for('delete_income', id=tx.id) }}"
+                                          style="display:inline"
+                                          onsubmit="return confirm('Delete this income entry?')">
+                                        <button type="submit" class="btn-delete">Delete</button>
+                                    </form>
+                                    {% else %}
                                     <a href="{{ url_for('edit_expense', id=tx.id) }}" class="tx-edit-link">Edit</a>
                                     <form method="POST" action="{{ url_for('delete_expense', id=tx.id) }}"
                                           style="display:inline"
                                           onsubmit="return confirm('Delete this expense?')">
                                         <button type="submit" class="btn-delete">Delete</button>
                                     </form>
+                                    {% endif %}
                                 </td>
                             </tr>
                             {% endfor %}
-                            {% if not expenses %}
+                            {% if not transactions %}
                             <tr>
                                 <td colspan="5" class="tx-empty">No expenses found for this period.</td>
                             </tr>
