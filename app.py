@@ -32,6 +32,7 @@ from database.queries import (
     delete_account_by_id,
     delete_expense_by_id,
     delete_income_by_id,
+    delete_user_by_id,
     get_account_breakdown,
     get_account_by_id,
     get_accounts_by_user,
@@ -269,6 +270,41 @@ def admin_user_detail(user_id):
         transactions=get_all_transactions(user_id),
         currency_symbol=currency_symbol,
     )
+
+
+@app.route("/admin/users/<int:user_id>/delete", methods=["POST"])
+def admin_delete_user(user_id):
+    if not session.get("user_id"):
+        return redirect(url_for("login"))
+    if not session.get("is_admin"):
+        abort(403)
+
+    if user_id == session.get("user_id"):
+        flash("You cannot delete your own account.", "error")
+        return redirect(url_for("admin_users"))
+
+    target_user = get_user_for_admin(user_id)
+    if target_user is None:
+        abort(404)
+
+    delete_user_by_id(user_id)
+    flash(f"Deleted {target_user['name']} and all their data.", "success")
+    return redirect(url_for("admin_users"))
+
+
+@app.route("/admin/users/<int:user_id>/accounts/<int:account_id>/delete", methods=["POST"])
+def admin_delete_account(user_id, account_id):
+    if not session.get("user_id"):
+        return redirect(url_for("login"))
+    if not session.get("is_admin"):
+        abort(403)
+
+    if get_user_for_admin(user_id) is None:
+        abort(404)
+
+    delete_account_by_id(account_id, user_id)
+    flash("Account removed.", "success")
+    return redirect(url_for("admin_user_detail", user_id=user_id))
 
 
 # ------------------------------------------------------------------ #

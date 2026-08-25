@@ -40,6 +40,13 @@
                             <td class="tx-date">{{ u.created_at }}</td>
                             <td class="tx-actions">
                                 <a href="{{ url_for('admin_user_detail', user_id=u.id) }}" class="tx-edit-link">View</a>
+                                {% if u.id != session.user_id %}
+                                <form method="POST" action="{{ url_for('admin_delete_user', user_id=u.id) }}"
+                                      style="display:inline"
+                                      onsubmit="return confirm('Delete {{ u.name }} and ALL their accounts and transactions? This cannot be undone.')">
+                                    <button type="submit" class="btn-delete">Delete</button>
+                                </form>
+                                {% endif %}
                             </td>
                         </tr>
                         {% endfor %}

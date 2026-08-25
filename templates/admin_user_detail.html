@@ -44,6 +44,13 @@
                     {% if account.description %}
                     <p class="account-card-description">{{ account.description }}</p>
                     {% endif %}
+                    <div class="account-card-actions">
+                        <form method="POST" action="{{ url_for('admin_delete_account', user_id=target_user.id, account_id=account.id) }}"
+                              style="display:inline"
+                              onsubmit="return confirm('Delete this account? Accounts with existing transactions are deactivated instead of deleted.')">
+                            <button type="submit" class="btn-delete">Delete</button>
+                        </form>
+                    </div>
                 </div>
                 {% endfor %}
                 {% if not accounts %}

@@ -495,6 +495,19 @@ def get_user_for_admin(user_id):
     }
 
 
+def delete_user_by_id(user_id):
+    """Permanently remove a user and every record that references them
+    (expenses/income first, then accounts, so foreign key constraints are
+    never violated), for use by the admin dashboard only."""
+    conn = get_db()
+    conn.execute("DELETE FROM expenses WHERE user_id = ?", (user_id,))
+    conn.execute("DELETE FROM income WHERE user_id = ?", (user_id,))
+    conn.execute("DELETE FROM accounts WHERE user_id = ?", (user_id,))
+    conn.execute("DELETE FROM users WHERE id = ?", (user_id,))
+    conn.commit()
+    conn.close()
+
+
 def update_user_base_currency(user_id, currency):
     conn = get_db()
     conn.execute(
