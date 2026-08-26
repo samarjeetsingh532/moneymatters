@@ -175,6 +175,10 @@
     align-items: start;
 }
 
+.profile-grid .profile-section {
+    min-width: 0;
+}
+
 .profile-section {
     padding: 1.75rem;
 }
@@ -360,6 +364,22 @@
         flex-direction: column;
         text-align: center;
         padding: 1.5rem;
+    }
+
+    .profile-header-actions {
+        margin-left: 0;
+        width: 100%;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0.6rem;
+    }
+
+    .base-currency-form {
+        justify-content: space-between;
+    }
+
+    .profile-add-btn {
+        text-align: center;
     }
 
     .profile-stats {

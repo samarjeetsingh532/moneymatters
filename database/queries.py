@@ -11,7 +11,10 @@ from database.db import DEFAULT_CURRENCY, get_db, recalculate_account_balance
 # converted total across accounts; swap CONVERT_AMOUNT's lookup for a live
 # exchange-rate API call later without touching any caller.
 
-CURRENCIES = ["INR", "USD", "EUR", "GBP", "AED", "CAD", "AUD", "JPY"]
+CURRENCIES = [
+    "INR", "USD", "EUR", "GBP", "AED", "CAD", "AUD", "JPY",
+    "RUB", "CNY", "CHF", "SGD", "HKD", "NZD", "ZAR", "SAR",
+]
 
 CURRENCY_SYMBOLS = {
     "INR": "₹",
@@ -22,6 +25,14 @@ CURRENCY_SYMBOLS = {
     "CAD": "CA$",
     "AUD": "A$",
     "JPY": "¥",
+    "RUB": "₽",
+    "CNY": "CN¥",
+    "CHF": "CHF ",
+    "SGD": "S$",
+    "HKD": "HK$",
+    "NZD": "NZ$",
+    "ZAR": "R",
+    "SAR": "SAR ",
 }
 
 EXCHANGE_RATES_TO_INR = {
@@ -33,6 +44,14 @@ EXCHANGE_RATES_TO_INR = {
     "CAD": 61.0,
     "AUD": 55.0,
     "JPY": 0.56,
+    "RUB": 0.92,
+    "CNY": 11.5,
+    "CHF": 94.0,
+    "SGD": 61.5,
+    "HKD": 10.6,
+    "NZD": 51.0,
+    "ZAR": 4.5,
+    "SAR": 22.1,
 }
 
 
