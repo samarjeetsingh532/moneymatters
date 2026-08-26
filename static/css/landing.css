@@ -24,3 +24,20 @@
     justify-content: center;
     flex-wrap: wrap;
 }
+
+@media (max-width: 480px) {
+    .landing-basic { padding: 1.5rem; }
+
+    .landing-basic-actions {
+        flex-direction: column;
+        width: 100%;
+        max-width: 320px;
+        margin: 0 auto;
+    }
+
+    .landing-basic-actions .btn-primary,
+    .landing-basic-actions .btn-ghost {
+        width: 100%;
+        text-align: center;
+    }
+}

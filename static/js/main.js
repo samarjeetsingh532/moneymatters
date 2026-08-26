@@ -61,7 +61,21 @@ function syncCurrencyToAccount(accountSelect, currencySelect) {
     sync();
 }
 
+function setupNavToggle(toggle, links) {
+    if (!toggle || !links) return;
+    toggle.addEventListener("click", function () {
+        var isOpen = links.classList.toggle("nav-links-open");
+        toggle.classList.toggle("nav-toggle-open", isOpen);
+        toggle.setAttribute("aria-expanded", isOpen ? "true" : "false");
+    });
+}
+
 document.addEventListener("DOMContentLoaded", function () {
+    setupNavToggle(
+        document.getElementById("nav-toggle"),
+        document.getElementById("nav-links")
+    );
+
     syncCurrencyToAccount(
         document.querySelector(".account-select"),
         document.querySelector(".currency-select")

@@ -18,7 +18,12 @@
                 <span class="brand-icon">◈</span>
                 <span class="brand-name">Money-Tracker</span>
             </a>
-            <div class="nav-links">
+            <button type="button" class="nav-toggle" id="nav-toggle" aria-expanded="false" aria-controls="nav-links" aria-label="Toggle navigation menu">
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
+            <div class="nav-links" id="nav-links">
                 {% if session.user_id %}
                 <a href="{{ url_for('accounts') }}" class="{{ 'nav-link-active' if request.endpoint in ('accounts', 'add_account', 'edit_account') else '' }}">Accounts</a>
                 <a href="{{ url_for('profile') }}" class="{{ 'nav-link-active' if request.endpoint == 'profile' else '' }}">Dashboard</a>
